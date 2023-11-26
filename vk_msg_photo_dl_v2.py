@@ -3,7 +3,10 @@ import getopt
 import os
 from bs4 import BeautifulSoup
 import re
-# import csv
+import csv
+from collections import defaultdict
+from urllib import request
+import cgi
 
 # Type of processing:
 # 1 - process all messages first, then download all files
@@ -18,12 +21,16 @@ filenames = []
 # dicts for saving parsing results
 # dict format:
 # id, url, timestamp
-images = {}
-files = {}
-videos = {}
-voice_msgs = {}
+images = defaultdict(list)
+files = defaultdict(list)
+# videos = defaultdict(list)
+# voice_msgs = defaultdict(list)
 # regex pattern for messageXXXX.html files
 fname_regex = re.compile("^messages[0-9]+\.html$")
+global img_id
+global file_id
+
+field_names = ['id', 'URL']
 
 
 # get input params from console
@@ -77,9 +84,23 @@ def set_ts_on_file(file, ts):
     print("NYI")
 
 
+def clean_dirs(workdir):
+    print("NYI")
+
+
 # export dicts (images, voices_msgs, videos, files) to the *.csv files in a workdir
 def export_dicts(workdir):
-    print("NYI")
+    with open(workdir + '\\dl\\' + 'images.csv', 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=field_names)
+        writer.writeheader()
+        for k, v in images.items():
+            writer.writerow({"id": k, "URL": v[0]})
+
+    with open(workdir + '\\dl\\' + 'files.csv', 'w', newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=field_names)
+        writer.writeheader()
+        for k, v in files.items():
+            writer.writerow({"id": k, "URL": v[0]})
 
 
 # import dicts (images, voices_msgs, videos, files) from the *.csv files in a workdir
@@ -102,17 +123,27 @@ def mkdirs(workdir):
 
 # process files from dict (download to dir and set ts)
 def process_files(workdir, file_dict):
-    print("NYI")
+    print('Processing files...')
+    for id, values in file_dict.items():
+        print('Processing file', str(id))
+        # remotefile = request.urlopen(values[0])
+        # contentdisposition = remotefile.info()['Content-Disposition']
+        # _, params = cgi.parse_header(contentdisposition)
+        # filename = params["filename"]
+        # request.urlretrieve(values[0], filename)
+    print('Finished processing files')
 
 
 # process all dicts with files
-def process_files_from_dir(workdir, mode):
-    print("NYI")
+def process_files_from_dir(workdir):
+    process_files(workdir + '\\dl\\images\\', images)
+    process_files(workdir + '\\dl\\files\\', files)
 
 
 # parse messages file data and fill it to dicts
 def parse_msg_file(message_file):
-    img_id = 0
+    global img_id
+    global file_id
     ts = ""
     ts_line = ""
     msg_header = ""
@@ -138,11 +169,14 @@ def parse_msg_file(message_file):
                     case 'Photo':
                         img_id += 1
                         attach_url = child.find_next('div', attrs={'class': 'item'}).findChild(attrs={'class': 'attachment__link'}).text
+                        images[img_id].append(attach_url)
                         print('Found attachment of type "Photo", with URL', attach_url)
                     case 'Video':
                         print('Found attachment of type "Video"')
                     case 'File':
+                        file_id += 1
                         attach_url = child.find_next('div', attrs={'class': 'item'}).findChild(attrs={'class': 'attachment__link'}).text
+                        files[file_id].append(attach_url)
                         print('Found attachment of type "File", with URL', attach_url)
                     case 'Message deleted':
                         continue
@@ -157,14 +191,20 @@ def parse_msg_file(message_file):
                     case _:
                         print('Found attachment of type "Unknown"')
 
-#msg_header = parser.body.find('div', attrs={'class': 'item'}).findChild(attrs={'class': 'message__header'}).text
-
 
 # parse all files in a directory
 def parse_directory(workdir, mode):
     filenames = list_files(workdir)
     filenames_len = len(filenames)
     filenames_cnt = 0
+    global img_id
+    global file_id
+    global images
+    global files
+    img_id = 0
+    file_id = 0
+    images = defaultdict(list)
+    files = defaultdict(list)
 
     print("Parsing directory " + workdir)
 
@@ -178,8 +218,6 @@ def parse_directory(workdir, mode):
 def main(argv):
     get_args(argv)
 
-    # parse_msg_file('C:\\Data\\media\\vk_messages_photo_downloader\\messages\\2000000005\\messages1650.html')
-
     dirnames = list_dirs(wdir)
     dirnames_len = len(dirnames)
     dirnames_cnt = 0
@@ -188,16 +226,18 @@ def main(argv):
     while (dirnames_len - dirnames_cnt) >= 1:
         parse_directory(wdir + dirnames[dirnames_cnt], proc_mode)
         mkdirs(wdir + dirnames[dirnames_cnt])
-        # if (proc_mode == 2):
-            # process_files_from_dir(wdir + dirnames[dirnames_cnt], proc_mode)
+        if proc_mode == '1':
+            export_dicts(wdir + dirnames[dirnames_cnt])
+        if proc_mode == '2':
+            process_files_from_dir(wdir + dirnames[dirnames_cnt])
         dirnames_cnt = dirnames_cnt + 1
 
-#    if (proc_mode == 1):
-#        dirnames_cnt = 0
-#        while (dirnames_len - dirnames_cnt) > 1:
-#            import_dicts(dirs[dirnames_cnt])
-#            process_files_from_dir(dirs[dirnames_cnt])
-#            dirnames_cnt = dirnames_cnt + 1
+    if (proc_mode == 1):
+        dirnames_cnt = 0
+        while (dirnames_len - dirnames_cnt) > 1:
+            import_dicts(wdir + dirnames[dirnames_cnt])
+            process_files_from_dir(wdir + dirnames[dirnames_cnt])
+            dirnames_cnt = dirnames_cnt + 1
 
 
 if __name__ == "__main__":
