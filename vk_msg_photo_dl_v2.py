@@ -27,6 +27,7 @@ files = defaultdict(list)
 # voice_msgs = defaultdict(list)
 # regex pattern for messageXXXX.html files
 fname_regex = re.compile("^messages[0-9]+\.html$")
+reply_regex = re.compile("^[0-9]+ attached message[s]*$")
 global img_id
 global file_id
 
@@ -165,31 +166,32 @@ def parse_msg_file(message_file):
         for attachment in attach_desc:
             desc = attachment.find_next('div', attrs={'class': 'attachment__description'})
             if desc is not None:
-                match desc.text:
-                    case 'Photo':
-                        img_id += 1
-                        attach_url = child.find_next('div', attrs={'class': 'item'}).findChild(attrs={'class': 'attachment__link'}).text
-                        images[img_id].append(attach_url)
-                        print('Found attachment of type "Photo", with URL', attach_url)
-                    case 'Video':
-                        print('Found attachment of type "Video"')
-                    case 'File':
-                        file_id += 1
-                        attach_url = child.find_next('div', attrs={'class': 'item'}).findChild(attrs={'class': 'attachment__link'}).text
-                        files[file_id].append(attach_url)
-                        print('Found attachment of type "File", with URL', attach_url)
-                    case 'Message deleted':
-                        continue
-                    case 'Audio file':
-                        continue
-                    case 'Wall post':
-                        continue
-                    case 'Sticker':
-                        continue
-                    case 'Link':
-                        continue
-                    case _:
-                        print('Found attachment of type "Unknown"')
+                if not reply_regex.match(desc.text):
+                    match desc.text:
+                        case 'Photo':
+                            img_id += 1
+                            attach_url = child.find_next('div', attrs={'class': 'item'}).findChild(attrs={'class': 'attachment__link'}).text
+                            images[img_id].append(attach_url)
+                            print('Found attachment of type "Photo", with URL', attach_url)
+                        case 'Video':
+                            print('Found attachment of type "Video"')
+                        case 'File':
+                            file_id += 1
+                            attach_url = child.find_next('div', attrs={'class': 'item'}).findChild(attrs={'class': 'attachment__link'}).text
+                            files[file_id].append(attach_url)
+                            print('Found attachment of type "File", with URL', attach_url)
+                        case 'Message deleted':
+                            continue
+                        case 'Audio file':
+                            continue
+                        case 'Wall post':
+                            continue
+                        case 'Sticker':
+                            continue
+                        case 'Link':
+                            continue
+                        case _:
+                            print('Found attachment of type "' + desc.text + '", currently not available for processing.')
 
 
 # parse all files in a directory
