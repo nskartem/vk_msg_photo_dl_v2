@@ -49,7 +49,7 @@ def get_args(cli_args):
         elif opt in ("-p", "--pmode"):
             proc_mode = arg
         elif opt in ("-w", "--workdir"):
-            wdir = arg + '\\'
+            wdir = arg + '/'
     print('Processing mode is', proc_mode)
     print('Workdir is', wdir)
 
@@ -58,7 +58,7 @@ def get_args(cli_args):
 def list_dirs(workdir):
     dirs_list = []
     for dirname in next(os.walk(workdir))[1]:
-        # print(dirname);
+        # print(dirname)
         dirs_list.append(dirname)
     return dirs_list
 
@@ -90,13 +90,13 @@ def clean_dirs(workdir):
 
 # export dicts (images, voices_msgs, videos, files) to the *.csv files in a workdir
 def export_dicts(workdir):
-    with open(workdir + '\\dl\\' + 'images.csv', 'w', newline='') as csvfile:
+    with open(os.path.normpath(workdir + '/dl/' + 'images.csv'), 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
         writer.writeheader()
         for k, v in images.items():
             writer.writerow({"id": k, "URL": v[0]})
 
-    with open(workdir + '\\dl\\' + 'files.csv', 'w', newline='') as csvfile:
+    with open(os.path.normpath(workdir + '/dl/' + 'files.csv'), 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
         writer.writeheader()
         for k, v in files.items():
@@ -111,14 +111,14 @@ def import_dicts(workdir):
 # mk subdirs to save downloaded files
 def mkdirs(workdir):
     # print(workdir);
-    if not os.path.exists(workdir + '\\dl'):
-        os.makedirs(workdir + '\\dl')
-    if not os.path.exists(workdir + '\\dl' + '\\images'):
-        os.makedirs(workdir + '\\dl' + '\\images')
-    if not os.path.exists(workdir + '\\dl' + '\\voice_msgs'):
-        os.makedirs(workdir + '\\dl' + '\\voice_msgs')
-    if not os.path.exists(workdir + '\\dl' + '\\files'):
-        os.makedirs(workdir + '\\dl' + '\\files')
+    if not os.path.exists(os.path.normpath(workdir + '/dl')):
+        os.makedirs(os.path.normpath(workdir + '/dl'))
+    if not os.path.exists(os.path.normpath(workdir + '/dl' + '/images')):
+        os.makedirs(os.path.normpath(workdir + '/dl' + '/images'))
+    if not os.path.exists(os.path.normpath(workdir + '/dl' + '/voice_msgs')):
+        os.makedirs(os.path.normpath(workdir + '/dl' + '/voice_msgs'))
+    if not os.path.exists(os.path.normpath(workdir + '/dl' + '/files')):
+        os.makedirs(os.path.normpath(workdir + '/dl' + '/files'))
 
 
 # process files from dict (download to dir and set ts)
@@ -136,8 +136,8 @@ def process_files(workdir, file_dict):
 
 # process all dicts with files
 def process_files_from_dir(workdir):
-    process_files(workdir + '\\dl\\images\\', images)
-    process_files(workdir + '\\dl\\files\\', files)
+    process_files(os.path.normpath(workdir + '/dl/images/'), images)
+    process_files(os.path.normpath(workdir + '/dl/files/'), files)
 
 
 # parse messages file data and fill it to dicts
@@ -151,7 +151,7 @@ def parse_msg_file(message_file):
     attach_url = ""
     print("Parsing file " + message_file)
 
-    file = open(message_file, 'r')
+    file = open(message_file, 'r', encoding='windows-1251')
     parser = BeautifulSoup(file, features="html.parser")
     items = parser.body.find('div', attrs={'class': 'wrap'}).findChild(attrs={'class': 'wrap_page_content'}).children
 
@@ -209,7 +209,7 @@ def parse_directory(workdir, mode):
     print("Parsing directory " + workdir)
 
     while (filenames_len - filenames_cnt) >= 1:
-        parse_msg_file(workdir + '\\' + filenames[filenames_cnt])
+        parse_msg_file(os.path.normpath(workdir + '/' + filenames[filenames_cnt]))
         filenames_cnt = filenames_cnt + 1
 
     print("Finished parsing directory " + workdir)
