@@ -1,0 +1,39 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/vk_msg_photo_dl_v2.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-p 2",
+                "-w tmp/messages"
+            ],
+            "python": "${workspaceFolder}/.venv/bin/python"
+            }
+        ],
+    "inputs": [
+        {
+            "id": "pickDir",
+            "type": "command",
+            "command": "extension.commandvariable.file.pickFile",
+            "args": {
+                "include": "**/*",
+                "display": "fileName",
+                "description": "Subdirectory to process",
+                "showDirs": true
+                },
+        },
+        {
+            "id": "fixedDir",
+            "type": "promptString",
+            "description": "Subdirectory to process",
+            "default": "tmp/messages"
+        }
+        ]
+}
