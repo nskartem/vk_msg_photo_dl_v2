@@ -1,12 +1,9 @@
 import sys
 import getopt
 import os
-from bs4 import BeautifulSoup
 import re
-import csv
-from collections import defaultdict
-from urllib import request
-import cgi
+# import glob
+# import csv
 
 # Type of processing:
 # 1 - process all messages first, then download all files
@@ -21,16 +18,12 @@ filenames = []
 # dicts for saving parsing results
 # dict format:
 # id, url, timestamp
-images = defaultdict(list)
-files = defaultdict(list)
-# videos = defaultdict(list)
-# voice_msgs = defaultdict(list)
+images = {}
+files = {}
+videos = {}
+voice_msgs = {}
 # regex pattern for messageXXXX.html files
 fname_regex = re.compile("^messages[0-9]+\.html$")
-global img_id
-global file_id
-
-field_names = ['id', 'URL']
 
 
 # get input params from console
@@ -68,8 +61,10 @@ def list_files(workdir):
     files_list = []
     for filename in next(os.walk(workdir))[2]:
         if fname_regex.match(filename):
-            # print(filename)
+            print(filename)
             files_list.append(filename)
+    # files_list = glob.glob(workdir + '\messages*.html');
+    # print(files_list);
     return files_list
 
 
@@ -84,23 +79,9 @@ def set_ts_on_file(file, ts):
     print("NYI")
 
 
-def clean_dirs(workdir):
-    print("NYI")
-
-
 # export dicts (images, voices_msgs, videos, files) to the *.csv files in a workdir
 def export_dicts(workdir):
-    with open(workdir + '\\dl\\' + 'images.csv', 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=field_names)
-        writer.writeheader()
-        for k, v in images.items():
-            writer.writerow({"id": k, "URL": v[0]})
-
-    with open(workdir + '\\dl\\' + 'files.csv', 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=field_names)
-        writer.writeheader()
-        for k, v in files.items():
-            writer.writerow({"id": k, "URL": v[0]})
+    print("NYI")
 
 
 # import dicts (images, voices_msgs, videos, files) from the *.csv files in a workdir
@@ -123,73 +104,41 @@ def mkdirs(workdir):
 
 # process files from dict (download to dir and set ts)
 def process_files(workdir, file_dict):
-    print('Processing files...')
-    for id, values in file_dict.items():
-        print('Processing file', str(id))
-        # remotefile = request.urlopen(values[0])
-        # contentdisposition = remotefile.info()['Content-Disposition']
-        # _, params = cgi.parse_header(contentdisposition)
-        # filename = params["filename"]
-        # request.urlretrieve(values[0], filename)
-    print('Finished processing files')
+    print("NYI")
 
 
 # process all dicts with files
-def process_files_from_dir(workdir):
-    process_files(workdir + '\\dl\\images\\', images)
-    process_files(workdir + '\\dl\\files\\', files)
+def process_files_from_dir(workdir, mode):
+    print("NYI")
 
 
 # parse messages file data and fill it to dicts
 def parse_msg_file(message_file):
-    global img_id
-    global file_id
+    img_id = 0
     ts = ""
     ts_line = ""
     msg_header = ""
     attach_desc = ""
     attach_url = ""
     print("Parsing file " + message_file)
-
-    file = open(message_file, 'r')
-    parser = BeautifulSoup(file, features="html.parser")
-    items = parser.body.find('div', attrs={'class': 'wrap'}).findChild(attrs={'class': 'wrap_page_content'}).children
-
-    for child in items:
-        attach_desc = child.findNext('div', attrs={'class': 'item'})
-        if attach_desc is not None:
-            attach_desc = attach_desc.findChildren(attrs={'class': 'attachment__description'})
-        else:
-            break
-
-        for attachment in attach_desc:
-            desc = attachment.find_next('div', attrs={'class': 'attachment__description'})
-            if desc is not None:
-                match desc.text:
-                    case 'Photo':
+    with open(message_file, 'r') as file:
+        file_lines = file.readlines()
+        for ctr, read_line in enumerate(file_lines):
+            msg_header = re.search('<div class="message__header">', read_line)
+            if msg_header:
+                ts_line = re.search('<\/a>,(.+?)<\/div>', read_line)
+                if ts_line:
+                    ts = convert_ts(ts_line.group(1))
+            attach_desc = re.search('<div class="attachment__description">', read_line)
+            if attach_desc:
+                attach_desc = re.search('(Фото)|(Photo)', read_line)
+                if attach_desc:
+                    attach_url = re.search('href=\'.*\'\>', file_lines[ctr+1])
+                    if attach_url:
+                        attach_url = attach_url.group(0)[6:len(attach_url.group(0))-2]
+                        print("Found attached photo with URL: " + attach_url)
+                        images.items
                         img_id += 1
-                        attach_url = child.find_next('div', attrs={'class': 'item'}).findChild(attrs={'class': 'attachment__link'}).text
-                        images[img_id].append(attach_url)
-                        print('Found attachment of type "Photo", with URL', attach_url)
-                    case 'Video':
-                        print('Found attachment of type "Video"')
-                    case 'File':
-                        file_id += 1
-                        attach_url = child.find_next('div', attrs={'class': 'item'}).findChild(attrs={'class': 'attachment__link'}).text
-                        files[file_id].append(attach_url)
-                        print('Found attachment of type "File", with URL', attach_url)
-                    case 'Message deleted':
-                        continue
-                    case 'Audio file':
-                        continue
-                    case 'Wall post':
-                        continue
-                    case 'Sticker':
-                        continue
-                    case 'Link':
-                        continue
-                    case _:
-                        print('Found attachment of type "Unknown"')
 
 
 # parse all files in a directory
@@ -197,19 +146,11 @@ def parse_directory(workdir, mode):
     filenames = list_files(workdir)
     filenames_len = len(filenames)
     filenames_cnt = 0
-    global img_id
-    global file_id
-    global images
-    global files
-    img_id = 0
-    file_id = 0
-    images = defaultdict(list)
-    files = defaultdict(list)
 
     print("Parsing directory " + workdir)
 
     while (filenames_len - filenames_cnt) >= 1:
-        parse_msg_file(workdir + '\\' + filenames[filenames_cnt])
+        parse_msg_file(workdir + filenames[filenames_cnt])
         filenames_cnt = filenames_cnt + 1
 
     print("Finished parsing directory " + workdir)
@@ -218,26 +159,26 @@ def parse_directory(workdir, mode):
 def main(argv):
     get_args(argv)
 
-    dirnames = list_dirs(wdir)
-    dirnames_len = len(dirnames)
-    dirnames_cnt = 0
-    # print(dirnames);
+    parse_msg_file('C:\\Data\\media\\vk_messages_photo_downloader\\messages\\2000000005\\messages1650.html')
 
-    while (dirnames_len - dirnames_cnt) >= 1:
-        parse_directory(wdir + dirnames[dirnames_cnt], proc_mode)
-        mkdirs(wdir + dirnames[dirnames_cnt])
-        if proc_mode == '1':
-            export_dicts(wdir + dirnames[dirnames_cnt])
-        if proc_mode == '2':
-            process_files_from_dir(wdir + dirnames[dirnames_cnt])
-        dirnames_cnt = dirnames_cnt + 1
+    # dirnames = list_dirs(wdir);
+    # dirnames_len = len(dirnames);
+    # dirnames_cnt = 0;
+    # #print(dirnames);
 
-    if (proc_mode == 1):
-        dirnames_cnt = 0
-        while (dirnames_len - dirnames_cnt) > 1:
-            import_dicts(wdir + dirnames[dirnames_cnt])
-            process_files_from_dir(wdir + dirnames[dirnames_cnt])
-            dirnames_cnt = dirnames_cnt + 1
+    # while (dirnames_len - dirnames_cnt) >= 1:
+    #     parse_directory(wdir + dirnames[dirnames_cnt], proc_mode);
+    #     mkdirs(wdir + dirnames[dirnames_cnt]);
+    #     if (proc_mode == 2):
+    #         process_files_from_dir(wdir + dirnames[dirnames_cnt]);
+    #     dirnames_cnt = dirnames_cnt + 1;
+
+    # if (proc_mode == 1):
+    #     dirnames_cnt = 0;
+    #     while (dirnames_len - dirnames_cnt) > 1:
+    #         import_dicts(dirs[dirnames_cnt]);
+    #         process_files_from_dir(dirs[dirnames_cnt]);
+    #         dirnames_cnt = dirnames_cnt + 1;
 
 
 if __name__ == "__main__":
