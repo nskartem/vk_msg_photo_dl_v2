@@ -11,10 +11,13 @@
             "program": "${workspaceFolder}/vk_msg_photo_dl_v2.py",
             "console": "integratedTerminal",
             "args": [
-                "-p 2",
-                "-w tmp/messages"
+                "-p",
+                "1",
+                "-w",
+                "tmp/messages"
             ],
-            "python": "${workspaceFolder}/.venv/bin/python"
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "justMyCode": false
             }
         ],
     "inputs": [
